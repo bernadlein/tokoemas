@@ -1,0 +1,21 @@
+{
+  "name": "toko-emas-prototype-v41",
+  "version": "0.4.1",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "nuxt dev", "build": "nuxt build", "start": "nuxt start" },
+  "dependencies": {
+    "nuxt": "latest",
+    "@pinia/nuxt": "latest",
+    "jspdf": "latest",
+    "papaparse": "latest",
+    "chart.js": "latest"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "latest",
+    "autoprefixer": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
+  },
+  "engines": { "node": ">=20.0.0" }
+}
