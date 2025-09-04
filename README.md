@@ -128,4 +128,4 @@ yarn-*.log*
 - **Icon tidak tampil** → pastikan `nuxt-icon` aktif di `nuxt.config.ts`.
 
 ## 📄 Lisensi
-Hak cipta © Pemilik Proyek. Semua hak dilindungi. (Ubah sesuai kebutuhan: MIT/Proprietary)
+Hak cipta © Bernadus Boli. Semua hak dilindungi.
