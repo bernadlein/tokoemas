@@ -1,10 +1,26 @@
+<script setup lang="ts">
+const route = useRoute()
+const items = [
+  { label: 'Dash',   to: '/admin' },
+  { label: 'Produk', to: '/admin/products' },
+  { label: 'Kas',    to: '/admin/cashflow' },
+  { label: 'Import', to: '/admin/import' },
+]
+</script>
+
 <template>
-  <nav class="fixed bottom-0 left-0 right-0 sm:hidden bg-white/90 backdrop-blur border-t safe-bottom">
-    <div class="max-w-6xl mx-auto grid grid-cols-4 text-xs">
-      <NuxtLink to="/admin" class="text-center py-2">Home</NuxtLink>
-      <NuxtLink to="/admin/trade" class="text-center py-2">Transaksi</NuxtLink>
-      <NuxtLink to="/admin/cashflow" class="text-center py-2">Kas</NuxtLink>
-      <NuxtLink to="/admin/products" class="text-center py-2">Produk</NuxtLink>
+  <!-- perhatikan: bottom-0 + inset-x-0, BUKAN inset-0 -->
+  <nav class="fixed inset-x-0 bottom-0 z-40 border-t pointer-events-auto bg-white/95 backdrop-blur md:hidden">
+    <div class="grid grid-cols-4 mx-auto max-w-7xl">
+      <NuxtLink
+        v-for="i in items"
+        :key="i.to"
+        :to="i.to"
+        class="flex flex-col items-center justify-center py-2 text-xs"
+        :class="route.path.startsWith(i.to) ? 'text-amber-700' : 'text-slate-600'"
+      >
+        <span>{{ i.label }}</span>
+      </NuxtLink>
     </div>
   </nav>
 </template>

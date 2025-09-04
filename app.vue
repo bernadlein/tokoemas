@@ -1,1 +1,11 @@
-<template><div class='min-h-screen flex flex-col'><header class='sticky top-0 z-50 backdrop-blur bg-white/70 border-b'><div class='section flex items-center justify-between py-3'><div class='flex items-center gap-3'><div class='w-8 h-8 rounded-xl bg-amber-500'></div><NuxtLink to='/' class='font-semibold'>Toko Emas</NuxtLink></div><nav class='hidden sm:flex gap-4 text-sm'><NuxtLink to='/catalog' class='hover:underline'>Katalog</NuxtLink><NuxtLink to='/admin' class='hover:underline'>Admin</NuxtLink></nav></div></header><main class='flex-1'><NuxtPage/></main><footer class='section text-center text-xs text-slate-500 my-8'>© {{ new Date().getFullYear() }} Toko Emas — Prototype v4.1</footer></div></template>
+<!-- app.vue -->
+<template>
+  <NuxtLayout>
+    <NuxtPage />
+    <ClientOnly>
+      <ToastHost />
+      <ConfirmDialog />
+    </ClientOnly>
+  </NuxtLayout>
+</template>
+

@@ -1,48 +1,67 @@
 <script setup lang="ts">
-const s=useDataStore(); onMounted(()=>s.init())
-const form = reactive({ type:'IN' as 'IN'|'OUT', amount:0, note:'', wallet:'toko' as 'toko'|'pribadi', channel:'cash' as 'cash'|'debit'|'transfer' })
-const idr = (n:number)=> new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n||0)
+definePageMeta({ layout: 'admin' })
+const s = useDataStore(); onMounted(() => s.init?.())
+
+type Row = { label:string, in:number, out:number }
+function sum(rows: Row[]) { return rows.reduce((a, r) => a + r.in - r.out, 0) }
+
+const byWallet = computed<Row[]>(() => {
+  const acc: Record<string, Row> = {}
+  for (const t of (s.trades || [])) {
+    const w = t.wallet || 'toko'
+    acc[w] ||= { label: w, in: 0, out: 0 }
+    if (t.type === 'penjualan') acc[w].in += t.total || 0
+    else acc[w].out += t.total || 0
+  }
+  return Object.values(acc)
+})
+
+const byChannel = computed<Row[]>(() => {
+  const acc: Record<string, Row> = {}
+  for (const t of (s.trades || [])) {
+    const c = t.channel || 'cash'
+    acc[c] ||= { label: c, in: 0, out: 0 }
+    if (t.type === 'penjualan') acc[c].in += t.total || 0
+    else acc[c].out += t.total || 0
+  }
+  return Object.values(acc)
+})
 </script>
+
 <template>
-  <section class="section pb-20 sm:pb-6">
-    <AdminNav class="hidden sm:flex" />
-    <div class="grid md:grid-cols-2 gap-4 mt-4">
+  <section class="pb-24 section sm:pb-6">
+    <div class="grid gap-6 mt-4 md:grid-cols-2">
       <div class="card">
-        <h3 class="font-semibold mb-2">Catat Kas</h3>
-        <div class="grid gap-2">
-          <label class="label">Dompet</label><select v-model="form.wallet" class="input"><option value="toko">Kas Toko</option><option value="pribadi">Kas Pribadi</option></select>
-          <label class="label">Channel</label><select v-model="form.channel" class="input"><option value="cash">Cash</option><option value="debit">Debit</option><option value="transfer">Transfer</option></select>
-          <label class="label">Tipe</label><select v-model="form.type" class="input"><option value="IN">Masuk</option><option value="OUT">Keluar</option></select>
-          <label class="label">Nominal</label><input type="number" v-model.number="form.amount" class="input" />
-          <label class="label">Catatan</label><input v-model="form.note" class="input" placeholder="Contoh: Setoran kas harian" />
-          <button class="btn-primary mt-2" @click="s.addCash(form)">Simpan</button>
-        </div>
-      </div>
-      <div class="card">
-        <h3 class="font-semibold mb-2">Ringkasan</h3>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div><p class="text-sm text-slate-600">Toko (Cash)</p><p class="text-xl font-semibold">{{ idr(s.cashBy('toko','cash')) }}</p></div>
-          <div><p class="text-sm text-slate-600">Toko (Debit)</p><p class="text-xl font-semibold">{{ idr(s.cashBy('toko','debit')) }}</p></div>
-          <div><p class="text-sm text-slate-600">Pribadi (Cash)</p><p class="text-xl font-semibold">{{ idr(s.cashBy('pribadi','cash')) }}</p></div>
-          <div><p class="text-sm text-slate-600">Pribadi (Debit)</p><p class="text-xl font-semibold">{{ idr(s.cashBy('pribadi','debit')) }}</p></div>
-        </div>
-      </div>
-    </div>
-    <div class="card mt-4">
-      <h3 class="font-semibold mb-2">Mutasi Kas</h3>
-      <div class="space-y-2 max-h-[420px] overflow-auto">
-        <div v-for="c in s.cash" :key="c.id" class="border rounded-2xl p-2">
-          <div class="flex items-center justify-between text-sm">
-            <div>
-              <div class="font-medium"><span :class="c.type==='IN' ? 'badge-green' : 'badge-red'" class="badge mr-2">{{ c.type==='IN'?'Masuk':'Keluar' }}</span>{{ c.wallet }} • {{ c.channel }}</div>
-              <div class="text-slate-500">{{ new Date(c.date).toLocaleString('id-ID') }} • {{ c.note }}</div>
+        <h3 class="mb-2 font-semibold">Dompet (Toko vs Pribadi)</h3>
+        <div class="space-y-2">
+          <div v-for="r in byWallet" :key="r.label" class="flex items-center justify-between p-2 border rounded-xl">
+            <div class="font-medium capitalize">{{ r.label }}</div>
+            <div class="text-right">
+              <div class="text-emerald-700">IN: {{ r.in.toLocaleString('id-ID') }}</div>
+              <div class="text-rose-700">OUT: {{ r.out.toLocaleString('id-ID') }}</div>
+              <div class="mt-1 font-semibold">Saldo: {{ (r.in - r.out).toLocaleString('id-ID') }}</div>
             </div>
-            <div :class="c.type==='IN' ? 'text-emerald-700' : 'text-rose-700'" class="font-semibold">{{ idr(c.amount) }}</div>
+          </div>
+          <div class="p-2 mt-2 text-right border rounded-xl">
+            <span class="mr-2 text-slate-500">Total</span>
+            <b>{{ sum(byWallet).toLocaleString('id-ID') }}</b>
           </div>
         </div>
-        <p v-if="!s.cash.length" class="text-sm text-slate-500">Belum ada mutasi kas.</p>
+      </div>
+
+      <div class="card">
+        <h3 class="mb-2 font-semibold">Channel (Cash/Debit/Transfer)</h3>
+        <div class="space-y-2">
+          <div v-for="r in byChannel" :key="r.label" class="flex items-center justify-between p-2 border rounded-xl">
+            <div class="font-medium capitalize">{{ r.label }}</div>
+            <div class="text-right">
+              <div class="text-emerald-700">IN: {{ r.in.toLocaleString('id-ID') }}</div>
+              <div class="text-rose-700">OUT: {{ r.out.toLocaleString('id-ID') }}</div>
+              <div class="mt-1 font-semibold">Net: {{ (r.in - r.out).toLocaleString('id-ID') }}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <AdminBottomNav />
   </section>
 </template>

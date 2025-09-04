@@ -7,10 +7,6 @@ const s = useDataStore()
 import { useToast } from '~/composables/useToast'
 const { show: toast } = useToast()
 
-// Confirm
-import { useConfirm } from '~/composables/useConfirm'
-const { ask } = useConfirm()
-
 // Render setelah store dipanggil init (tidak menunggu promise—ringan & aman)
 const ready = ref(false)
 onMounted(() => { try { s.init?.() } finally { ready.value = true } })
@@ -100,39 +96,11 @@ async function submit () {
   if (!pid.value || !vid.value) { toast('Pilih produk & varian.', { variant: 'error' }); return }
   if (Number(price.value) <= 0)  { toast('Isi harga terlebih dahulu.', { variant: 'error' }); return }
 
-  // ——— KONFIRMASI ———
-  const pName    = product.value?.name || '(produk)'
-  const vWeight  = Number(variant.value?.weight || 0)
-  const priceLbl = mode.value === 'perPcs'
-    ? `${fmtIDR(Number(price.value))} /pcs`
-    : `${fmtIDR(Number(price.value))} /gr`
-
-  // ✨ Dirapikan per-baris agar rapi & mudah diparse dialog
-  const msg = [
-    `Jenis: ${type.value === 'penjualan' ? 'Penjualan' : 'Buyback'}`,
-    `Produk: ${pName}`,
-    `Varian: ${vWeight} gr × ${qty.value}`,
-    `Harga: ${priceLbl}`,
-    `Diskon: ${Number(discPct.value || 0)}% + ${fmtIDR(Number(discNom.value || 0))}`,
-    `Total: ${fmtIDR(total.value)}`,
-    `Dompet: ${wallet.value}`,
-    `Channel: ${channel.value}`
-  ].join('\n')
-
-  const ok = await ask({
-    title: 'Simpan Transaksi?',
-    message: msg,
-    confirmText: 'Simpan',
-    cancelText: 'Cek Lagi',
-    variant: type.value === 'buyback' ? 'danger' : 'default'
-  })
-  if (!ok) { toast('Dibatalkan.', { variant: 'info' }); return }
-
   try {
     s.trade?.({
       type: type.value,
-      productId: pid.value!,
-      variantId: vid.value!,
+      productId: pid.value,
+      variantId: vid.value,
       qty: Number(qty.value),
       priceMode: mode.value,
       priceUsed: Number(price.value),
@@ -176,9 +144,11 @@ async function toDataUrl (path: string): Promise<string> {
 async function pdf (t: any) {
   if (!isClient) return
   try {
+    // genReceipt ada di utils/receipt.ts; genTradePdf disediakan sbg alias kompatibel
     const { genReceipt, genTradePdf } = await import('~/utils/receipt')
     const make = genReceipt || (genTradePdf as any)
 
+    // sematkan logo/tanda tangan jika ada
     const logo = await toDataUrl('/branding/logo.png')
     const sign = await toDataUrl('/branding/signature.png')
 
@@ -213,18 +183,8 @@ async function pdf (t: any) {
 
 async function exportToday () {
   if (!isClient) return
-
-  // ——— KONFIRMASI EXPORT ———
-  const today = new Date().toISOString().slice(0, 10)
-  const ok = await ask({
-    title: 'Export Rekap?',
-    message: `Export rekap transaksi tanggal ${today}?`,
-    confirmText: 'Export',
-    cancelText: 'Batal'
-  })
-  if (!ok) return
-
   try {
+    const today = new Date().toISOString().slice(0, 10)
     const { exportDailySummary } = await import('~/utils/pdf')
 
     const rows = (s.trades || [])

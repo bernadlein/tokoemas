@@ -1,45 +1,85 @@
 <script setup lang="ts">
-const s = useDataStore(); onMounted(()=>s.init())
-const form = reactive({ code:'', name:'', category:'perhiasan' as 'perhiasan'|'logammulia', jenis:'kalung', karat:'24K', kadarPct:97, image:'', variants:[{weight:10,stock:0},{weight:5,stock:0}] })
-const preview = computed(()=> form.image || 'https://images.unsplash.com/photo-1543294001-f7cd5d7fb516?q=80&w=800&auto=format&fit=crop')
-function add(){ if(!form.code || !form.name) return alert('Lengkapi kode & nama'); s.addProduct({ code:form.code, name:form.name, category:form.category, jenis:form.jenis, karat:form.karat, kadarPct:form.kadarPct, image: form.image || undefined }, form.variants); Object.assign(form,{ code:'', name:'', category:'perhiasan', jenis:'kalung', karat:'24K', kadarPct:97, image:'', variants:[{weight:10,stock:0}] }) }
-function addVariant(){ form.variants.push({ weight:1, stock:0 }) }
+definePageMeta({ layout: 'admin' })
+const s = useDataStore(); onMounted(() => s.init?.())
+
+// Form tambah cepat (1 varian awal)
+const f = reactive({
+  code: '', name: '', category: 'Perhiasan', jenis: 'kalung',
+  karat: 24, kadar: 97, photo: '',
+  variantWeight: 5, variantStock: 1
+})
+
+function addQuick() {
+  if (!f.code || !f.name) return alert('Isi kode & nama')
+  const payload: any = {
+    code: f.code, name: f.name, category: f.category, jenis: f.jenis,
+    karat: Number(f.karat), kadar: Number(f.kadar), photo: f.photo,
+    variants: [{ id: Date.now(), weight: Number(f.variantWeight), stock: Number(f.variantStock) }]
+  }
+  ;(s as any).addProduct?.(payload) || (s as any).upsertProduct?.(payload)
+  Object.assign(f, { code:'', name:'', photo:'', variantWeight:5, variantStock:1 })
+}
+
+const FALLBACK =
+  'https://images.unsplash.com/photo-1543294001-f7cd5d7fb516?q=80&w=1200&auto=format&fit=crop'
 </script>
+
 <template>
-  <section class="section pb-20 sm:pb-6">
-    <AdminNav class="hidden sm:flex" />
-    <div class="grid md:grid-cols-3 gap-4 mt-4">
-      <div class="card md:col-span-1">
-        <h3 class="font-semibold mb-2">Tambah Produk</h3>
-        <img :src="preview" class="w-full h-40 object-cover rounded-2xl mb-3 border" />
-        <div class="grid gap-2">
-          <label class="label">Kode</label><input v-model="form.code" class="input" />
-          <label class="label">Nama</label><input v-model="form.name" class="input" />
-          <label class="label">Kategori</label>
-          <select v-model="form.category" class="input"><option value="perhiasan">Perhiasan</option><option value="logammulia">Logam Mulia</option></select>
-          <label class="label">Jenis</label><input v-model="form.jenis" class="input" placeholder="kalung/gelang/LM dsb" />
-          <div class="grid grid-cols-2 gap-2">
-            <div><label class="label">Karat</label><input v-model="form.karat" class="input" /></div>
-            <div><label class="label">Kadar (%)</label><input type="number" step="0.01" v-model.number="form.kadarPct" class="input" /></div>
+  <section class="pb-24 section sm:pb-6">
+    <div class="mt-4 grid gap-6 lg:grid-cols-[380px,1fr]">
+      <!-- Form -->
+      <div class="card">
+        <h3 class="mb-3 font-semibold">Tambah Produk</h3>
+
+        <div class="grid gap-3">
+          <img :src="f.photo || FALLBACK" class="object-cover w-full h-44 rounded-xl" />
+          <input v-model="f.photo" class="input" placeholder="URL Foto (opsional)" />
+
+          <div class="grid grid-cols-2 gap-3">
+            <input v-model="f.code" class="input" placeholder="Kode / SKU" />
+            <input v-model="f.name" class="input" placeholder="Nama Produk" />
           </div>
-          <label class="label">URL Foto</label><input v-model="form.image" class="input" placeholder="https://..." />
-          <div class="mt-2">
-            <div class="flex items-center justify-between"><h4 class="font-medium">Varian Berat</h4><button class="btn" @click="addVariant">+ Varian</button></div>
-            <div v-for="(v,i) in form.variants" :key="i" class="grid grid-cols-2 gap-2 mt-2">
-              <input type="number" step="0.01" v-model.number="v.weight" class="input" placeholder="Berat (gr)" />
-              <input type="number" v-model.number="v.stock" class="input" placeholder="Stok (pcs)" />
-            </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <select v-model="f.category" class="input">
+              <option>Perhiasan</option><option>Logammulia</option>
+            </select>
+            <input v-model="f.jenis" class="input" placeholder="Jenis (kalung/gelang/LM)" />
+            <input type="number" v-model.number="f.karat" class="input" placeholder="Karat" />
           </div>
-          <button class="btn-primary mt-3" @click="add">Simpan</button>
+
+          <div class="grid grid-cols-3 gap-3">
+            <input type="number" v-model.number="f.kadar" class="input" placeholder="Kadar (%)" />
+            <input type="number" v-model.number="f.variantWeight" class="input" placeholder="Varian gram" />
+            <input type="number" v-model.number="f.variantStock" class="input" placeholder="Stok varian" />
+          </div>
+
+          <button class="btn-primary" @click="addQuick">Simpan</button>
         </div>
       </div>
-      <div class="card md:col-span-2">
-        <h3 class="font-semibold mb-2">Daftar Produk</h3>
-        <div class="grid md:grid-cols-2 gap-4">
-          <ProductCard v-for="p in s.products" :key="p.id" :item="p" />
+
+      <!-- List -->
+      <div class="space-y-4">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div v-for="p in s.products" :key="p.id" class="card">
+            <img :src="p.photo || FALLBACK" class="object-cover w-full h-36 rounded-xl" />
+            <div class="mt-3">
+              <div class="font-semibold leading-tight">
+                {{ p.name }} <span class="text-xs text-slate-500">({{ p.code }})</span>
+              </div>
+              <div class="text-xs text-slate-500">
+                {{ p.category }} • {{ p.jenis }} • {{ p.karat }}K/{{ p.kadar }}%
+              </div>
+              <div class="mt-1 text-xs">
+                Total: {{
+                  new Intl.NumberFormat('id-ID',{maximumFractionDigits:2})
+                    .format((p.variants||[]).reduce((sum:number,v:any)=> sum+(v.weight||0)*(v.stock||0),0))
+                }} gr
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    <AdminBottomNav />
   </section>
 </template>
